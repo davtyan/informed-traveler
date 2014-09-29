@@ -1,5 +1,4 @@
-informed-traveler
-=================
+I  
 
 
-![alt text](images/data-pipeline.jpg)
+as 
