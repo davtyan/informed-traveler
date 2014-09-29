@@ -11,4 +11,4 @@ To automatically download the data I used [rita_data_download.sh](../shell_scrip
 
 Here is the data pipeline that I used for my project:
 
-![alt text](images/data_pipeline.jpg)
+![alt text](images/data-pipeline.jpg)
