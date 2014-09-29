@@ -22,4 +22,4 @@ I used Flask API and Python to implement the user interface. To plot the data I 
 Snapshot of the User Interface and  Query Results:
 ===================
 
-![alt text](images/query-results.png)
+![alt text](images/query-result.png)
