@@ -12,3 +12,14 @@ To automatically download the data I used [rita_data_download.sh](../shell_scrip
 Here is the data pipeline that I used for my project:
 
 ![alt text](images/data-pipeline.jpg)
+
+As you can see I used **Pig** for batch processing. Using *Pig Latin* I cleaned the data and performed the necessary aggregations to show the delay ratios per category. The data is not clean and there are missing fields. As a result not all delays are categorized, I added an *Unclassified* category that combines all such delays.
+
+As a NoSQL Database I used HBase, and I used PigStorage to insert the data into HBase.
+
+I used Flask API and Python to implement the user interface. To plot the data I used [highcharts](http://www.highcharts.com). 
+
+Snapshot of the User Interface and  Query Results:
+===================
+
+![alt text](images/query-results.png)
