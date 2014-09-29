@@ -20,6 +20,6 @@ As a NoSQL Database I used HBase, and I used PigStorage to insert the data into 
 I used Flask API and Python to implement the user interface. To plot the data I used [highcharts](http://www.highcharts.com). 
 
 Snapshot of the User Interface and  Query Results:
-===================
+---------------------------------------
 
 ![alt text](images/query-result.png)
