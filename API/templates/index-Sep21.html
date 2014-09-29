@@ -1,0 +1,67 @@
+<!doctype HTML>
+<html>
+<head>
+<!--<link rel="stylesheet" href="//code.jquery.com/ui/1.11.1/themes/smoothness/jquery-ui.css">-->
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+<script src="//code.jquery.com/jquery-1.10.2.js"></script>
+<script src="//code.jquery.com/ui/1.11.1/jquery-ui.js"></script>
+<link rel="stylesheet" href="/resources/demos/style.css">
+<div class=page>
+  <h1>Seda Davtyan - Insight Data Engineering Fellow</h1>
+  <h1>Pleasant Travel</h1>
+</div>
+<script>
+$(function() {
+$( "#from" ).datepicker({
+defaultDate: "+1w",
+changeMonth: true,
+changeYear: true,
+numberOfMonths: 1,
+onClose: function( selectedDate ) {
+$( "#to" ).datepicker( "option", "minDate", selectedDate );
+}
+});
+$( "#to" ).datepicker({
+defaultDate: "+1w",
+changeMonth: true,
+changeYear: true,
+numberOfMonths: 1,
+onClose: function( selectedDate ) {
+$( "#from" ).datepicker( "option", "maxDate", selectedDate );
+}
+});
+});
+</script>
+  <script type="text/javascript" src="../jscripts/svg.jquery.js"></script>
+  <script type="text/javascript" src="../jscripts/pygal-tooltips.js"></script>
+</head>
+<body>
+    {% if data != '' %}
+        <p>Airline: {{data['airline']}} From: {{data['from']}} To: {{data['to']}}</p>
+    {% else %}
+        <p>Enter Airline</p>
+    {% endif %}
+    <form action='' method='post'>
+       <table class="entries" cellspacing="25px">
+        <!--<label for = "Select an Airline">Select an Airline</label>-->
+	<tr>
+	  <td><!--<span class="inputLabel">Airline:</span>-->
+	    <input name="airline" type="text" list="airline" placeholder="Airline">
+	    <datalist id="airline">
+              <option value="9E">
+              <option value="AA">
+              <option value="DL">
+	      <option value="NW">
+              <option value="UA">
+	      <option value="US">
+	    </datalist></td> 
+          <td><!--<span class="inputLabel">From:</span>-->
+	   <input class="dateitem" type="text" id="from" name="from" placeholder="From Date"></td>
+	  <td><!--<span class="inputLabel">To:</span>-->
+	   <input class="dateitem" type="text" id="to" name="to" placeholder="To Date"></td>
+	<td><button class="submitButton" type="submit">Submit Query</button></td>
+	</tr>
+	</table>
+    </form>
+</body>
+</html>

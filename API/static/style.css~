@@ -1,0 +1,58 @@
+body            { font-family: sans-serif; background: #eee; }
+a, h1, h2       { color: #377ba8; }
+h1              { font-family: 'Georgia', serif; margin: 0; text-align: center }
+h1              { border-bottom: 2px solid #eee; }
+h2              { font-size: 1.2em; }
+
+.page           { margin: 2em auto; width: 1000px; border: 2px solid #ccc;
+                  padding: 0.8em; background: white; }
+.proj_title     { text-align: center; font-size:2.3em; color: #4d90fe; }
+.author         { color:#AAA; }
+.company        { text-align: right; color:#AAA; }
+
+div.report-type { margin-bottom: 10px; }
+div.entries     { margin-top: 20px; margin-bottom: 20px; }
+div.results     { margin-top: 10px; }
+div.clear-line  { clear:both; }
+div.floatL      { float: left; border: 2px solid #ccc; margin: 5px; }
+
+.add-entry      { font-size: 0.9em; border-bottom: 1px solid #ccc; }
+.add-entry dl   { font-weight: bold; }
+.metanav        { text-align: right; font-size: 0.8em; padding: 0.3em;
+                  margin-bottom: 1em; background: #fafafa; }
+.flash          { background: #cee5F5; padding: 0.5em;
+                  border: 1px solid #aacbe2; }
+.error          { background: #f0d6d6; padding: 0.5em; }
+
+.entries input { height: 44px; font-size: 16px; display: inline; }
+.entries button { height: 48px; font-size: 16px; display: inline; }
+.entries .dateitem { width: 186px; }
+.entries .inputLabel { font-size: 1.2em; }
+
+/*#reportForm input, #reportForm button { float: left; } */
+
+.submitButton, .submitButton:visited {
+	border: 1px solid #3079ed;
+	color: #fff;
+	background-image: -webkit-linear-gradient(top,#4d90fe,#4787ed);
+	background-image: -moz-linear-gradient(top,#4d90fe,#4787ed);
+	width: 135px;
+}
+.submitButton:hover { 
+	background-image: -webkit-linear-gradient(top,#4787ed,#4d90fe);
+	background-image: -moz-linear-gradient(top,#4787ed,#4d90fe);
+}
+
+.ui-datepicker {
+	margin-top: 5px;
+	background-color: #FFF;
+	border: 1px solid #CCC;
+	padding: 7px;
+}
+a.ui-datepicker-prev.ui-corner-all {
+	margin-right: 110px;
+	
+}
+.ui-datepicker {
+	position: relative; top: -2000px; left: 0px;
+} 

@@ -1,0 +1,65 @@
+<!doctype HTML>
+<html>
+<head>
+<!--<link rel="stylesheet" href="//code.jquery.com/ui/1.11.1/themes/smoothness/jquery-ui.css">-->
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+<script src="//code.jquery.com/jquery-1.10.2.js"></script>
+<script src="//code.jquery.com/ui/1.11.1/jquery-ui.js"></script>
+<!--<link rel="stylesheet" href="/resources/demos/style.css">-->
+<div class=page>
+  <h1>Seda Davtyan - Insight Data Engineering Fellow</h1>
+  <h1>Pleasant Travel</h1>
+</div>
+<script>
+$(function() {
+$( "#from" ).datepicker({
+defaultDate: "+1w",
+changeMonth: true,
+numberOfMonths: 1,
+onClose: function( selectedDate ) {
+$( "#to" ).datepicker( "option", "minDate", selectedDate );
+}
+});
+$( "#to" ).datepicker({
+defaultDate: "+1w",
+changeMonth: true,
+numberOfMonths: 1,
+onClose: function( selectedDate ) {
+$( "#from" ).datepicker( "option", "maxDate", selectedDate );
+}
+});
+});
+</script>
+  <script type="text/javascript" src="http://kozea.github.com/pygal.js/javascripts/svg.jquery.js"></script>
+  <script type="text/javascript" src="http://kozea.github.com/pygal.js/javascripts/pygal-tooltips.js"></script>
+</head>
+<body>
+    {% if name != '' %}
+        <p>Airline: {{data['name']}} From: {{data['from']}} To: {{data['to']}}</p>
+    {% else %}
+        <p>Enter Airline</p>
+    {% endif %}
+    <form action='' method='post'>
+      <dl>
+        <!--<label for = "Select an Airline">Select an Airline</label>-->
+	<dt> Select an Airline:
+          <dd><input name="airlines" type="text" list="airlines">
+	    <datalist id="airlines">
+              <option value="9E">
+              <option value="AA">
+              <option value="DL">
+	      <option value="NW">
+              <option value="UA">
+	      <option value="US">
+	    </datalist>
+	    <dt>From:
+      <!--	<label for="from">From</label>-->
+	      <dd><input type="text" id="from" name="from">
+	    <dt>To:
+<!--        <label for="to">To</label>-->
+	      <dd><input type="text" id="to" name="to">
+              <dd><button type="submit">Submit Query</button>
+	</dl>
+    </form>
+</body>
+</html>
