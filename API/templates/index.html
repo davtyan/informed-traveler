@@ -87,10 +87,6 @@ $(function() {
       <td class="company">Insight Data Engineering Fellow Project</td>
     </tr>
   </table>
-  <!--
-  <h1>Seda Davtyan - Insight Data Engineering Fellow</h1>
-  <h1>Pleasant Travel</h1>
-  -->
 
    {% if data != '' %}
         <p>Airline: {{data['airline']}} From: {{data['from']}} To:
@@ -124,25 +120,20 @@ $(function() {
     </form>
        <div class="clear-line">&nbsp;</div>
 	<div class="results">
-	<hr/>
-	<h3>Results:</h3>
-	<hr/>
+	
 	<div id="plot" style="height: 400px; min-width: 310px"></div>
 	<hr/>
-<!--	<hr/>
-	<div id="plot2" style="height: 400px; min-width: 310px"></div>
-	<hr/> -->
 </div>
 
 <datalist id="airline">
               <option value="9E">
-              <option value="AA">
+	      <option value="AA">
 	      <option value="AQ">
 	      <option value="AS">
 	      <option value="B6">
 	      <option value="CO">
 	      <option value="DH">
-              <option value="DL">
+	      <option value="DL">
 	      <option value="E*">
 	      <option value="EV">
 	      <option value="F9">
@@ -155,7 +146,7 @@ $(function() {
 	      <option value="OO">
 	      <option value="TW">
 	      <option value="TZ">
-              <option value="UA">
+	      <option value="UA">
 	      <option value="US">
 	      <option value="VX">
 	      <option value="WN">
@@ -169,12 +160,8 @@ $(function() {
 	      <option value="Independence Day">
 </datalist>
 
-</script>
-
-
 <script type="text/javascript" charset="utf-8">
-switch ("{{data['report_type']}}"){
-   case "delay_category":
+{% if data['report_type'] == 'delay_category' %}
     $(function () {
     $('#plot').highcharts({
         chart: {
@@ -208,20 +195,15 @@ switch ("{{data['report_type']}}"){
         }]
     });
 });
-
+{% endif %}
      
-   break;
-   case "delay_holiday":
+{% if data['report_type'] == 'delay_holiday' %}
 	$(function () {
            $('#plot').highcharts({
               title: {
 		text: 'Delay Trend on Holidays',
 		x: -20 //center
 	      },
-	     /* subtitle: {
-		text: 'Source: WorldClimate.com',
-		x: -20
-	      },*/
 	      xAxis: {
 		categories: {{chart_data[0] | safe}}
 	      },
@@ -253,40 +235,25 @@ switch ("{{data['report_type']}}"){
             }]
          });
        });
-       break;
-   case "delay_career":
-    
-     $(function () {
+{% endif %}
+      
+
+{% if data['report_type'] == "delay_career" %}
+  $(function () {
     $('#plot').highcharts({
         chart: {
             type: 'column'
         },
         title: {
-            text: 'Monthly Average Rainfall'
-        },
-        subtitle: {
-            text: 'Source: WorldClimate.com'
+            text: 'Airline Delays that are not NAS, Security or Weather Related'
         },
         xAxis: {
-            categories: [
-                'Jan',
-                'Feb',
-                'Mar',
-                'Apr',
-                'May',
-                'Jun',
-                'Jul',
-                'Aug',
-                'Sep',
-                'Oct',
-                'Nov',
-                'Dec'
-            ]
+            categories: {{chart_data[0] | safe}}
         },
         yAxis: {
             min: 0,
             title: {
-                text: 'Rainfall (mm)'
+                text: 'Delay Ratio'
             }
         },
         tooltip: {
@@ -303,35 +270,100 @@ switch ("{{data['report_type']}}"){
                 borderWidth: 0
             }
         },
+        series: {{chart_data[1] | safe}}
+    });
+});
+{% endif %}
+
+
+{% if data['report_type'] == "delay_flightNum" %}
+ $(function () {
+    $('#plot').highcharts({
+        chart: {
+            plotBackgroundColor: null,
+            plotBorderWidth: 1,//null,
+            plotShadow: false
+        },
+        title: {
+            text: 'Categories of Delay for the selected Airline and Dates'
+        },
+        tooltip: {
+            pointFormat: '{series.name}: <b>{point.percentage:.2f}%</b>'
+        },
+        plotOptions: {
+            pie: {
+                allowPointSelect: true,
+                cursor: 'pointer',
+                dataLabels: {
+                    enabled: true,
+                    format: '<b>{point.name}</b>: {point.percentage:.2f} %',
+                    style: {
+                        color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                    }
+                }
+            }
+        },
         series: [{
-            name: 'Tokyo',
-            data: [49.9, 71.5, 106.4, 129.2, 144.0, 176.0, 135.6, 148.5, 216.4, 194.1, 95.6, 54.4]
-
-        }, {
-            name: 'New York',
-            data: [83.6, 78.8, 98.5, 93.4, 106.0, 84.5, 105.0, 104.3, 91.2, 83.5, 106.6, 92.3]
-
-        }, {
-            name: 'London',
-            data: [48.9, 38.8, 39.3, 41.4, 47.0, 48.3, 59.0, 59.6, 52.4, 65.2, 59.3, 51.2]
-
-        }, {
-            name: 'Berlin',
-            data: [42.4, 33.2, 34.5, 39.7, 52.6, 75.5, 57.4, 60.4, 47.6, 39.1, 46.8, 51.1]
-
+            type: 'pie',
+            name: 'Airline Delay',
+            data: {{ chart_data | safe }}
         }]
     });
-});	break;
-   case "delay_flightNum":
-	break;
-   case "delay_season":
-	break;
-   default:
-     
-     break;
-}
+});
+{% endif %}
 
+{% if data['report_type'] == "delay_season" %}
+$(function () {
+    $('#plot').highcharts({
+        title: {
+            text: 'Monthly Average Temperature',
+            x: -20 //center
+        },
+        subtitle: {
+            text: 'Source: WorldClimate.com',
+            x: -20
+        },
+        xAxis: {
+            categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        },
+        yAxis: {
+            title: {
+                text: 'Temperature (°C)'
+            },
+            plotLines: [{
+                value: 0,
+                width: 1,
+                color: '#808080'
+            }]
+        },
+        tooltip: {
+            valueSuffix: '°C'
+        },
+        legend: {
+            layout: 'vertical',
+            align: 'right',
+            verticalAlign: 'middle',
+            borderWidth: 0
+        },
+        series: [{
+            name: 'Tokyo',
+            data: [7.0, 6.9, 9.5, 14.5, 18.2, 21.5, 25.2, 26.5, 23.3, 18.3, 13.9, 9.6]
+        }, {
+            name: 'New York',
+            data: [-0.2, 0.8, 5.7, 11.3, 17.0, 22.0, 24.8, 24.1, 20.1, 14.1, 8.6, 2.5]
+        }, {
+            name: 'Berlin',
+            data: [-0.9, 0.6, 3.5, 8.4, 13.5, 17.0, 18.6, 17.9, 14.3, 9.0, 3.9, 1.0]
+        }, {
+            name: 'London',
+            data: [3.9, 4.2, 5.7, 8.5, 11.9, 15.2, 17.0, 16.6, 14.2, 10.3, 6.6, 4.8]
+        }]
+    });
+});
+{% endif %}
 </script>
+
 
 <script>
   reportChanged(); // to set only the currently selected (at load time, the default) report options to show

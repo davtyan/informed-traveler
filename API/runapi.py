@@ -219,9 +219,7 @@ def delay_category(form_data):
         delay_total += value
         if value > 0.01:
             categ_total.append(temp)
-        elif len(categ_total) < 2:
-            categ_total.append(temp)
-
+    
     #calculate the number of flights that were not delayed
     notDelayed_total = flight_total - delay_total
     el = ['On Time', notDelayed_total]
@@ -314,7 +312,7 @@ def flightNum_delay(form_data):
             delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
             delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
 
-        table = connection.table('date_flightNum_fcount-2')
+        table = connection.table('flightNum_date_fcount-2')
         for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
             flight_total += int(data['count:Num_Flights'])
 
@@ -344,9 +342,7 @@ def flightNum_delay(form_data):
         delay_total += value
         if value > 0.01:
             categ_total.append(temp)
-        elif len(categ_total) < 2:
-            categ_total.append(temp)
-
+    
     #calculate the number of flights that were not delayed
     notDelayed_total = flight_total - delay_total
     el = ['On Time', notDelayed_total]
