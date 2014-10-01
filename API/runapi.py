@@ -15,58 +15,65 @@ app = Flask(__name__)
 
 #function takes the date in the format MM/DD/YYYY and transforms it to the format YYYY-MM-DD
 def date_transform(dt):
-    month, day, year = dt.split('/')
-    return year + '-' + month + '-' + day
+    if dt:
+        month, day, year = dt.split('/')
+        return year + '-' + month + '-' + day
+    else:
+        return ''
 
 #returns a dictioanary of keys assume that transformed dates are passed
 def row_keys(date_from, date_to):
-    row_key_dict = {'dates1':[], 'months1':[], 'years':[], 'months2':[], 'dates2':[]}
-    year_from, month_from, day_from = date_from.split('-')
-    year_to, month_to, day_to = date_to.split('-')
+    #if value was passed to the function
+    if date_from and date_to:
+        row_key_dict = {'dates1':[], 'months1':[], 'years':[], 'months2':[], 'dates2':[]}
+        year_from, month_from, day_from = date_from.split('-')
+        year_to, month_to, day_to = date_to.split('-')
     
-    #if there is at most one year difference don't bother processing years separately
-    if int(year_to) - int(year_from) < 2:
-        #the dates are within the same year and there is less than 2 months difference
-        if (int(year_to) == int(year_from)) and (int(month_to) - int(month_from) < 2):
-            row_key_dict['dates1'].append(date_from)
-            row_key_dict['dates1'].append(date_to)
-        #there is at least one full month to be processed
+        #if there is at most one year difference don't bother processing years separately
+        if int(year_to) - int(year_from) < 2:
+            #the dates are within the same year and there is less than 2 months difference
+            if (int(year_to) == int(year_from)) and (int(month_to) - int(month_from) < 2):
+                row_key_dict['dates1'].append(date_from)
+                row_key_dict['dates1'].append(date_to)
+            #there is at least one full month to be processed
+            else:
+                mnth_tmp = (int(month_from)+1)%12
+                #calculation goes to the first of the next month because end_row key in happy base scan method is exclusive
+                date_tmp = year_from + '-' + '%02d'%mnth_tmp + '-' + '01'
+                row_key_dict['dates1'].append(date_from)
+                row_key_dict['dates1'].append(date_tmp)
+                
+                #generate corresponding keys for the month
+                tmp_month = year_from + '-' + '%02d'%mnth_tmp
+                row_key_dict['months1'].append(tmp_month)
+                row_key_dict['months1'].append(year_to + '-' + month_to)
+                
+                #process the dates in the last month
+                row_key_dict['dates2'].append(year_to + '-' + month_to + '-' + '01')
+                row_key_dict['dates2'].append(date_to)
+        #at least one year is going to be processed differently
         else:
-            mnth_tmp = (int(month_from)+1)%12
-            #calculation goes to the first of the next month because end_row key in happy base scan method is exclusive
-            date_tmp = year_from + '-' + '%02d'%mnth_tmp + '-' + '01'
+            tmp_mnth = (int(month_from)+1)%12
+            tmp_date = year_from + '-' + '%02d'%tmp_mnth + '-' + '01'
             row_key_dict['dates1'].append(date_from)
-            row_key_dict['dates1'].append(date_tmp)
+            row_key_dict['dates1'].append(tmp_date)
             
-            #generate corresponding keys for the month
-            tmp_month = year_from + '-' + '%02d'%mnth_tmp
-            row_key_dict['months1'].append(tmp_month)
-            row_key_dict['months1'].append(year_to + '-' + month_to)
+            row_key_dict['months1'].append(year_from + '-' + '%02d'%tmp_mnth)
+            row_key_dict['months1'].append(str((int(year_from)+1)) + '-' + '01')
             
-            #process the dates in the last month
+            row_key_dict['years'].append(str(int(year_from)+1))
+            row_key_dict['years'].append(year_to)
+            
+            row_key_dict['months2'].append(year_to + '-' + '01')
+            row_key_dict['months2'].append(year_to + '-' + month_to)
+            
             row_key_dict['dates2'].append(year_to + '-' + month_to + '-' + '01')
+            #here we are loosing one day since the last day is not inclusive correct it later
             row_key_dict['dates2'].append(date_to)
-    #at least one year is going to be processed differently
+        
+        return row_key_dict
     else:
-        tmp_mnth = (int(month_from)+1)%12
-        tmp_date = year_from + '-' + '%02d'%tmp_mnth + '-' + '01'
-        row_key_dict['dates1'].append(date_from)
-        row_key_dict['dates1'].append(tmp_date)
-        
-        row_key_dict['months1'].append(year_from + '-' + '%02d'%tmp_mnth)
-        row_key_dict['months1'].append(str((int(year_from)+1)) + '-' + '01')
-        
-        row_key_dict['years'].append(str(int(year_from)+1))
-        row_key_dict['years'].append(year_to)
-        
-        row_key_dict['months2'].append(year_to + '-' + '01')
-        row_key_dict['months2'].append(year_to + '-' + month_to)
-        
-        row_key_dict['dates2'].append(year_to + '-' + month_to + '-' + '01')
-        #here we are loosing one day since the last day is not inclusive correct it later
-        row_key_dict['dates2'].append(date_to)
-    
-    return row_key_dict
+        return None
 
     
 @app.route('/', methods=['GET', 'POST'])
@@ -106,6 +113,7 @@ def index():
             flightNum = request.form['flightNum']
             airline = request.form['airline']
             tmp={'airline': airline, 'year': year, 'flightNum': flightNum, 'report_type':'delay_season'}
+            chart_data = season_delay(tmp)
 
     return render_template('index.html', data=tmp, chart_data=chart_data)
 
@@ -125,112 +133,115 @@ def delay_category(form_data):
     connection = happybase.Connection('localhost')
     connection.open()
 
-    if len(rk_dict['years']) != 0:
-        table = connection.table('delay_year_count')
-        rk_start = arln + '_' + rk_dict['years'][0]
-        rk_end = arln + '_' + rk_dict['years'][1]
+    if rk_dict is not None:
+        if len(rk_dict['years']) != 0:
+            table = connection.table('delay_year_count')
+            rk_start = arln + '_' + rk_dict['years'][0]
+            rk_end = arln + '_' + rk_dict['years'][1]
        
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            delay['NAS'] += int(data['delay:NASDelay_Num'])
-            delay['Security'] += int(data['delay:SecurityDelay_Num'])
-            delay['Weather'] += int(data['delay:WeatherDelay_Num'])
-            delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
-            delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
-            delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                delay['NAS'] += int(data['delay:NASDelay_Num'])
+                delay['Security'] += int(data['delay:SecurityDelay_Num'])
+                delay['Weather'] += int(data['delay:WeatherDelay_Num'])
+                delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
+                delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
+                delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
 
-        table = connection.table('year_fcount')
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            flight_total += int(data['count:Num_Flights'])
+            table = connection.table('year_fcount')
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                flight_total += int(data['count:Num_Flights'])
 
-    if len(rk_dict['months1']) != 0:
-        table = connection.table('delay_month_count')
-        rk_start = arln + '_' + rk_dict['months1'][0]
-        rk_end = arln + '_' + rk_dict['months1'][1]
+        if len(rk_dict['months1']) != 0:
+            table = connection.table('delay_month_count')
+            rk_start = arln + '_' + rk_dict['months1'][0]
+            rk_end = arln + '_' + rk_dict['months1'][1]
        
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            delay['NAS'] += int(data['delay:NASDelay_Num'])
-            delay['Security'] += int(data['delay:SecurityDelay_Num'])
-            delay['Weather'] += int(data['delay:WeatherDelay_Num'])
-            delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
-            delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
-            delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                delay['NAS'] += int(data['delay:NASDelay_Num'])
+                delay['Security'] += int(data['delay:SecurityDelay_Num'])
+                delay['Weather'] += int(data['delay:WeatherDelay_Num'])
+                delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
+                delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
+                delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
 
-        table = connection.table('month_fcount')
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            flight_total += int(data['count:Num_Flights'])
+            table = connection.table('month_fcount')
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                flight_total += int(data['count:Num_Flights'])
 
-    if len(rk_dict['months2']) != 0:
-        table = connection.table('delay_month_count')
-        rk_start = arln + '_' + rk_dict['months2'][0]
-        rk_end = arln + '_' + rk_dict['months2'][1]
+        if len(rk_dict['months2']) != 0:
+            table = connection.table('delay_month_count')
+            rk_start = arln + '_' + rk_dict['months2'][0]
+            rk_end = arln + '_' + rk_dict['months2'][1]
        
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            delay['NAS'] += int(data['delay:NASDelay_Num'])
-            delay['Security'] += int(data['delay:SecurityDelay_Num'])
-            delay['Weather'] += int(data['delay:WeatherDelay_Num'])
-            delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
-            delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
-            delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                delay['NAS'] += int(data['delay:NASDelay_Num'])
+                delay['Security'] += int(data['delay:SecurityDelay_Num'])
+                delay['Weather'] += int(data['delay:WeatherDelay_Num'])
+                delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
+                delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
+                delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
 
-        table = connection.table('month_fcount')
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            flight_total += int(data['count:Num_Flights'])
+            table = connection.table('month_fcount')
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                flight_total += int(data['count:Num_Flights'])
 
-    if len(rk_dict['dates1']) != 0:
-        table = connection.table('delay_date_count')
-        rk_start = arln + '_' + rk_dict['dates1'][0]
-        rk_end = arln + '_' + rk_dict['dates1'][1]
+        if len(rk_dict['dates1']) != 0:
+            table = connection.table('delay_date_count')
+            rk_start = arln + '_' + rk_dict['dates1'][0]
+            rk_end = arln + '_' + rk_dict['dates1'][1]
        
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            delay['NAS'] += int(data['delay:NASDelay_Num'])
-            delay['Security'] += int(data['delay:SecurityDelay_Num'])
-            delay['Weather'] += int(data['delay:WeatherDelay_Num'])
-            delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
-            delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
-            delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                delay['NAS'] += int(data['delay:NASDelay_Num'])
+                delay['Security'] += int(data['delay:SecurityDelay_Num'])
+                delay['Weather'] += int(data['delay:WeatherDelay_Num'])
+                delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
+                delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
+                delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
 
-        table = connection.table('date_fcount')
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            flight_total += int(data['count:Num_Flights'])
+            table = connection.table('date_fcount')
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                flight_total += int(data['count:Num_Flights'])
 
 
-    if len(rk_dict['dates2']) != 0:
-        table = connection.table('delay_date_count')
-        rk_start = arln + '_' + rk_dict['dates2'][0]
-        rk_end = arln + '_' + rk_dict['dates2'][1]
+        if len(rk_dict['dates2']) != 0:
+            table = connection.table('delay_date_count')
+            rk_start = arln + '_' + rk_dict['dates2'][0]
+            rk_end = arln + '_' + rk_dict['dates2'][1]
        
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            delay['NAS'] += int(data['delay:NASDelay_Num'])
-            delay['Security'] += int(data['delay:SecurityDelay_Num'])
-            delay['Weather'] += int(data['delay:WeatherDelay_Num'])
-            delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
-            delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
-            delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                delay['NAS'] += int(data['delay:NASDelay_Num'])
+                delay['Security'] += int(data['delay:SecurityDelay_Num'])
+                delay['Weather'] += int(data['delay:WeatherDelay_Num'])
+                delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
+                delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
+                delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
 
-        table = connection.table('date_fcount')
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            flight_total += int(data['count:Num_Flights'])
+            table = connection.table('date_fcount')
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                    flight_total += int(data['count:Num_Flights'])
 
-    connection.close()
+        connection.close()
 
-    #convert the dictionary to a list and calculate the percentages
-    for key, value in delay.iteritems():
-        temp = [key,value]
-        delay_total += value
-        if value > 0.01:
-            categ_total.append(temp)
+        #convert the dictionary to a list and calculate the percentages
+        for key, value in delay.iteritems():
+            temp = [key,value]
+            delay_total += value
+            if value >= 0.01:
+                categ_total.append(temp)
     
-    #calculate the number of flights that were not delayed
-    notDelayed_total = flight_total - delay_total
-    el = ['On Time', notDelayed_total]
-    categ_total.insert(0,el)
+        #calculate the number of flights that were not delayed
+        notDelayed_total = flight_total - delay_total
+        el = ['On Time', notDelayed_total]
+        categ_total.insert(0,el)
 
-    #calculate the percentages
-    for x in categ_total:
-        if flight_total != 0:
-            x[1] = x[1]/float(flight_total)
+        #calculate the percentages
+        for x in categ_total:
+            if flight_total != 0:
+                x[1] = x[1]/float(flight_total)
 
-    return categ_total
+        return categ_total
+    else:
+        return None
 
 def flightNum_delay(form_data):
     categ_total = []
@@ -248,112 +259,244 @@ def flightNum_delay(form_data):
     connection = happybase.Connection('localhost')
     connection.open()
     
-    if len(rk_dict['years']) != 0:
-        table = connection.table('delay_flightNum_year')
-        rk_start = arln + '_' + flNum + '_' + rk_dict['years'][0]
-        rk_end = arln + '_' + flNum + '_' + rk_dict['years'][1]
-       
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            delay['NAS'] += int(data['delay:NASDelay_Num'])
-            delay['Security'] += int(data['delay:SecurityDelay_Num'])
-            delay['Weather'] += int(data['delay:WeatherDelay_Num'])
-            delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
-            delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
-            delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
+    if rk_dict is not None:
+        if len(rk_dict['years']) != 0:
+            table = connection.table('delay_flightNum_year')
+            rk_start = arln + '_' + flNum + '_' + rk_dict['years'][0]
+            rk_end = arln + '_' + flNum + '_' + rk_dict['years'][1]
+           
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                delay['NAS'] += int(data['delay:NASDelay_Num'])
+                delay['Security'] += int(data['delay:SecurityDelay_Num'])
+                delay['Weather'] += int(data['delay:WeatherDelay_Num'])
+                delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
+                delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
+                delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
+            
+            table = connection.table('flightNum_year_fcount-2')
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                flight_total += int(data['count:Num_Flights'])
+
+        if len(rk_dict['months1']) != 0:
+            table = connection.table('delay_flightNum_month')
+            rk_start = arln + '_'+ flNum + '_'  + rk_dict['months1'][0]
+            rk_end = arln + '_'+ flNum + '_'  + rk_dict['months1'][1]
+           
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                delay['NAS'] += int(data['delay:NASDelay_Num'])
+                delay['Security'] += int(data['delay:SecurityDelay_Num'])
+                delay['Weather'] += int(data['delay:WeatherDelay_Num'])
+                delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
+                delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
+                delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
+
+            table = connection.table('flightNum_month_fcount-2')
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                flight_total += int(data['count:Num_Flights'])
+
+        if len(rk_dict['months2']) != 0:
+            table = connection.table('delay_flightNum_month')
+            rk_start = arln + '_'+ flNum + '_'  + rk_dict['months2'][0]
+            rk_end = arln + '_'+ flNum + '_'  + rk_dict['months2'][1]
+           
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                delay['NAS'] += int(data['delay:NASDelay_Num'])
+                delay['Security'] += int(data['delay:SecurityDelay_Num'])
+                delay['Weather'] += int(data['delay:WeatherDelay_Num'])
+                delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
+                delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
+                delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
+
+            table = connection.table('flightNum_month_fcount-2')
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                flight_total += int(data['count:Num_Flights'])
+
+        if len(rk_dict['dates1']) != 0:
+            table = connection.table('delay_flightNum_date')
+            rk_start = arln + '_'+ flNum + '_'  + rk_dict['dates1'][0]
+            rk_end = arln + '_' + flNum + '_' + rk_dict['dates1'][1]
+           
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                delay['NAS'] += int(data['delay:NASDelay_Num'])
+                delay['Security'] += int(data['delay:SecurityDelay_Num'])
+                delay['Weather'] += int(data['delay:WeatherDelay_Num'])
+                delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
+                delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
+                delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
+
+            table = connection.table('flightNum_date_fcount-2')
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                flight_total += int(data['count:Num_Flights'])
+
+
+        if len(rk_dict['dates2']) != 0:
+            table = connection.table('delay_flightNum_date')
+            rk_start = arln + '_'+ flNum + '_'  + rk_dict['dates2'][0]
+            rk_end = arln + '_' + flNum + '_' + rk_dict['dates2'][1]
+           
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                delay['NAS'] += int(data['delay:NASDelay_Num'])
+                delay['Security'] += int(data['delay:SecurityDelay_Num'])
+                delay['Weather'] += int(data['delay:WeatherDelay_Num'])
+                delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
+                delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
+                delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
+
+            table = connection.table('flightNum_date_fcount-2')
+            for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
+                flight_total += int(data['count:Num_Flights'])
+
+        connection.close()
         
-        table = connection.table('flightNum_year_fcount-2')
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            flight_total += int(data['count:Num_Flights'])
+        #convert the dictionary to a list and calculate the percentages
+        for key, value in delay.iteritems():
+            temp = [key,value]
+            delay_total += value
+            if value >= 0.01:
+                categ_total.append(temp)
+        
+        #calculate the number of flights that were not delayed
+        notDelayed_total = flight_total - delay_total
+        el = ['On Time', notDelayed_total]
+        categ_total.insert(0,el)
+        
+        #calculate the percentages
+        for x in categ_total:
+            if flight_total != 0:
+                x[1] = x[1]/float(flight_total)
 
-    if len(rk_dict['months1']) != 0:
-        table = connection.table('delay_flightNum_month')
-        rk_start = arln + '_'+ flNum + '_'  + rk_dict['months1'][0]
-        rk_end = arln + '_'+ flNum + '_'  + rk_dict['months1'][1]
-       
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            delay['NAS'] += int(data['delay:NASDelay_Num'])
-            delay['Security'] += int(data['delay:SecurityDelay_Num'])
-            delay['Weather'] += int(data['delay:WeatherDelay_Num'])
-            delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
-            delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
-            delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
+        return categ_total
+    else:
+        return None
 
-        table = connection.table('flightNum_month_fcount-2')
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            flight_total += int(data['count:Num_Flights'])
-
-    if len(rk_dict['months2']) != 0:
-        table = connection.table('delay_flightNum_month')
-        rk_start = arln + '_'+ flNum + '_'  + rk_dict['months2'][0]
-        rk_end = arln + '_'+ flNum + '_'  + rk_dict['months2'][1]
-       
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            delay['NAS'] += int(data['delay:NASDelay_Num'])
-            delay['Security'] += int(data['delay:SecurityDelay_Num'])
-            delay['Weather'] += int(data['delay:WeatherDelay_Num'])
-            delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
-            delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
-            delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
-
-        table = connection.table('flightNum_month_fcount-2')
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            flight_total += int(data['count:Num_Flights'])
-
-    if len(rk_dict['dates1']) != 0:
-        table = connection.table('delay_flightNum_date')
-        rk_start = arln + '_'+ flNum + '_'  + rk_dict['dates1'][0]
-        rk_end = arln + '_' + flNum + '_' + rk_dict['dates1'][1]
-       
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            delay['NAS'] += int(data['delay:NASDelay_Num'])
-            delay['Security'] += int(data['delay:SecurityDelay_Num'])
-            delay['Weather'] += int(data['delay:WeatherDelay_Num'])
-            delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
-            delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
-            delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
-
-        table = connection.table('flightNum_date_fcount-2')
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            flight_total += int(data['count:Num_Flights'])
-
-
-    if len(rk_dict['dates2']) != 0:
-        table = connection.table('delay_flightNum_date')
-        rk_start = arln + '_'+ flNum + '_'  + rk_dict['dates2'][0]
-        rk_end = arln + '_' + flNum + '_' + rk_dict['dates2'][1]
-       
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            delay['NAS'] += int(data['delay:NASDelay_Num'])
-            delay['Security'] += int(data['delay:SecurityDelay_Num'])
-            delay['Weather'] += int(data['delay:WeatherDelay_Num'])
-            delay['Late Aircraft'] += int(data['delay:LateAircraftDelay_Num'])
-            delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
-            delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
-
-        table = connection.table('flightNum_date_fcount-2')
-        for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
-            flight_total += int(data['count:Num_Flights'])
-
-    connection.close()
+def season_delay(form_data):
+    # delay_types = ['NAS', 'Security', 'Weather', 'Late Aircraft', 'Carrier', 'Unclassified']
+    season_total = []
+    flight_total = [0, 0, 0, 0]
+    #  season_total.append(delay_types)
+    #count the total number of delays per each season
+    delay_fall = {'NAS':0, 'Security':0, 'Weather':0, 'Late Aircraft':0, 'Carrier':0, 'Unclassified':0}
+    delay_winter = {'NAS':0, 'Security':0, 'Weather':0, 'Late Aircraft':0, 'Carrier':0, 'Unclassified':0}
+    delay_spring = {'NAS':0, 'Security':0, 'Weather':0, 'Late Aircraft':0, 'Carrier':0, 'Unclassified':0}
+    delay_summer = {'NAS':0, 'Security':0, 'Weather':0, 'Late Aircraft':0, 'Carrier':0, 'Unclassified':0}
+    #calculate the number of flights for a particular airline and flight number per season
+    onTime_total = []
+    fall = [0, 0, 0, 0, 0, 0]
+    winter = [0, 0, 0, 0, 0, 0]
+    spring = [0, 0, 0, 0, 0, 0]
+    summer = [0, 0, 0, 0, 0, 0]
+    data_exist = False
     
-    #convert the dictionary to a list and calculate the percentages
-    for key, value in delay.iteritems():
-        temp = [key,value]
-        delay_total += value
-        if value > 0.01:
-            categ_total.append(temp)
+    #assosiate seasons with quarters
+    #   season_quarter = {'1':'Fall', '2': 'Winter', '3':'Spring', '4':'Summer'}
     
-    #calculate the number of flights that were not delayed
-    notDelayed_total = flight_total - delay_total
-    el = ['On Time', notDelayed_total]
-    categ_total.insert(0,el)
+    #define the row key
+    row_key = form_data['airline'].upper() + '_' + form_data['flightNum'] + '_' + form_data['year'] + '_'
+    rk_fall = row_key + '1'
+    rk_winter = row_key + '2'
+    rk_spring = row_key + '3'
+    rk_summer = row_key + '4'
     
-    #calculate the percentages
-    for x in categ_total:
-        if flight_total != 0:
-            x[1] = x[1]/float(flight_total)
+    if row_key is not None:
+        connection = happybase.Connection('localhost')
+        connection.open()
+        table = connection.table('quarterly_delays')
+        
+        #get the data for fall
+        data = table.row(rk_fall)
+        if len(data) != 0:
+            data_exist = True
+            fall[0] += int(data['delay:NASDelay_Num'])
+            fall[1] += int(data['delay:SecurityDelay_Num'])
+            fall[2] += int(data['delay:WeatherDelay_Num'])
+            fall[3] += int(data['delay:LateAircraftDelay_Num'])
+            fall[4] += int(data['delay:CarrierDelay_Num'])
+            fall[5] += int(data['delay:OtherDelay_Num'])
+        
+        #get the data for winter
+        data = table.row(rk_winter)
+        if len(data) != 0:
+            winter[0] += int(data['delay:NASDelay_Num'])
+            winter[1] += int(data['delay:SecurityDelay_Num'])
+            winter[2] += int(data['delay:WeatherDelay_Num'])
+            winter[3] += int(data['delay:LateAircraftDelay_Num'])
+            winter[4] += int(data['delay:CarrierDelay_Num'])
+            winter[5] += int(data['delay:OtherDelay_Num'])
 
-    return categ_total
+    
+        #get the data for spring
+        data = table.row(rk_spring)
+        if len(data) != 0:
+            spring[0] += int(data['delay:NASDelay_Num'])
+            spring[1] += int(data['delay:SecurityDelay_Num'])
+            spring[2] += int(data['delay:WeatherDelay_Num'])
+            spring[3] += int(data['delay:LateAircraftDelay_Num'])
+            spring[4] += int(data['delay:CarrierDelay_Num'])
+            spring[5] += int(data['delay:OtherDelay_Num'])
+    
+        #get the data for summer
+        data = table.row(rk_summer)
+        if len(data) != 0:
+            summer[0] += int(data['delay:NASDelay_Num'])
+            summer[1] += int(data['delay:SecurityDelay_Num'])
+            summer[2] += int(data['delay:WeatherDelay_Num'])
+            summer[3] += int(data['delay:LateAircraftDelay_Num'])
+            summer[4] += int(data['delay:CarrierDelay_Num'])
+            summer[5] += int(data['delay:OtherDelay_Num'])
+        
+        if data_exist:
+            #get the total number of flights for a specific query
+            table = connection.table('quarterly_delays_fcount')
+            #process Fall
+            data = table.row(rk_fall)
+            if len(data) != 0:
+                flight_total[0] += int(data['count:Num_Flights'])
+            #process Winter
+            data = table.row(rk_winter)
+            if len(data) != 0:
+                flight_total[1] += int(data['count:Num_Flights'])
+            #process Spring
+            data = table.row(rk_spring)
+            if len(data) != 0:
+                flight_total[2] += int(data['count:Num_Flights'])
+            #process Summer
+            data = table.row(rk_summer)
+            if len(data) != 0:
+                flight_total[3] += int(data['count:Num_Flights'])
+            
+            #calculate the total number of flights that were on time for each season and insert it as a first element
+            total_del = 0
+            for i in fall:
+                total_del += i
+            #calculate the number of on time flights for fall
+            fall.insert(0, flight_total[0]-total_del)
+            season_total.append(fall)
+            
+            total_del = 0
+            for i in winter:
+                total_del += i
+            #calculate the number of on time flights for winter
+            winter.insert(0, flight_total[1]-total_del)
+            season_total.append(winter)
+            
+            total_del = 0
+            for i in spring:
+                total_del += i
+            #calculate the number of on time flights for spring
+            spring.insert(0, flight_total[2]-total_del)
+            season_total.append(spring)
+
+            total_del = 0
+            for i in summer:
+                total_del += i
+            #calculate the number of on time flights for fall
+            summer.insert(0, flight_total[3]-total_del)
+            season_total.append(summer)
+
+        return season_total
+    else:
+        return None
+
 
 
 
@@ -370,45 +513,47 @@ def airline_delays(form_data):
     row_keys_start = []
     row_keys_end = []
     
-    #construct row keys for all airlines
-    for x in airline_list:
-        row_keys_start.append(x + '_' + form_data['from'])
-        row_keys_end.append(x + '_' + form_data['to'])
+    #check if the dates were filled in the form
+    if form_data['from'] and form_data['to']:
     
-    connection = happybase.Connection('localhost')
-    connection.open()
-
-    air_index = 0
-    #iterate through row keys and make the necessary structures
-    for x,y in zip(row_keys_start, row_keys_end):
-        #caluclate totals for the next pair
-        flight_info['Carrier'] = 0
-        flight_info['Total'] = 0
-        if x and y:
-            table = connection.table('delay_date_count')
-            for key, data in table.scan(row_start = x, row_stop = y):
-                flight_info['Carrier'] += int(data['delay:CarrierDelay_Num']) + int(data['delay:LateAircraftDelay_Num']) + int(data['delay:OtherDelay_Num'])
+        #construct row keys for all airlines
+        for x in airline_list:
+            row_keys_start.append(x + '_' + form_data['from'])
+            row_keys_end.append(x + '_' + form_data['to'])
         
-            table1 = connection.table('date_fcount')
-            for key, data in table1.scan(row_start = x, row_stop = y):
-                flight_info['Total'] += int(data['count:Num_Flights'])
+        connection = happybase.Connection('localhost')
+        connection.open()
+
+        air_index = 0
+        #iterate through row keys and make the necessary structures
+        for x,y in zip(row_keys_start, row_keys_end):
+            #caluclate totals for the next pair
+            flight_info['Carrier'] = 0
+            flight_info['Total'] = 0
+            if x and y:
+                table = connection.table('delay_date_count')
+                for key, data in table.scan(row_start = x, row_stop = y):
+                    flight_info['Carrier'] += int(data['delay:CarrierDelay_Num']) + int(data['delay:LateAircraftDelay_Num']) + int(data['delay:OtherDelay_Num'])
             
-            #check if there were any flights by that airline
-            if flight_info['Total'] > 0:
-                delay_list.append(flight_info['Carrier']/float(flight_info['Total']))
-                exist_air.append(airline_list[air_index])
+                table1 = connection.table('date_fcount')
+                for key, data in table1.scan(row_start = x, row_stop = y):
+                    flight_info['Total'] += int(data['count:Num_Flights'])
+                
+                #check if there were any flights by that airline
+                if flight_info['Total'] > 0:
+                    delay_list.append(flight_info['Carrier']/float(flight_info['Total']))
+                    exist_air.append(airline_list[air_index])
 
-            air_index += 1 #parse next airline
+                air_index += 1 #parse next airline
 
-    flight_total.append(exist_air)
-    flight_total.append(delay_list)
-   
-    connection.close() #done processing records
-   
-    return flight_total
-
-
-
+        flight_total.append(exist_air)
+        flight_total.append(delay_list)
+       
+        connection.close() #done processing records
+       
+        return flight_total
+    else:
+        return None
 
 def delay_holiday(form_data):
     #define holidays that need to be processed

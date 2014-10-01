@@ -88,13 +88,6 @@ $(function() {
     </tr>
   </table>
 
-   {% if data != '' %}
-        <p>Airline: {{data['airline']}} From: {{data['from']}} To:
-        {{data['to']}} Report: {{data['report_type']}}</p>
-    {% else %}
-        <p>Enter Airline</p>
-    {% endif %}
-
     <form id="reportForm" action='' method='post' onchange="reportChanged()">
      <div class="report-type">
        <select name="report_type" id="report_type">
@@ -107,7 +100,34 @@ $(function() {
      </div>
        
        <div class="entries">
-         <input name="airline" type="text" id="airline" list="airline" placeholder="Airline">
+	 <select name="airline" id="airline">
+	   <option value="9E">Pinnacle Airlines</option>
+	   <option value="AA" selected="selected">American Airlines</option>
+	   <option value="AQ">Aloha Airlines</option>
+	   <option value="AS">Alaska Airlines</option>
+	   <option value="B6">JetBlue Airways</option>
+	   <option value="CO">Continental Airlines</option>
+	   <option value="DH">Atlantic Coast Airlines</option>
+	   <option value="DL">Delta Air Lines</option>
+	   <option value="E*">ExpressJet Combined EV</option>
+	   <option value="EV">Atlantic Southeast Airlines</option>
+	   <option value="F9">Frontier Airlines</option>
+	   <option value="FL">AirTran Airways</option>
+	   <option value="HA">Hawaiian Airlines</option>
+	   <option value="HP">America West Airlines</option>
+	   <option value="MQ">American Eagle</option>
+	   <option value="NW">Northwest Airlines</option>
+	   <option value="OH">Comair</option>
+	   <option value="OO">SkyWest Airlines</option>
+	   <option value="TW">Trans World Airlines</option>
+	   <option value="TZ">ATA Airlines</option>
+	   <option value="UA">United Airlines</option>
+	   <option value="US">US Airways</option>
+	   <option value="VX">Virgin America</option>
+	   <option value="WN">Southwest Airlines</option>
+	   <option value="XE">ExpressJet Airlines</option>
+	   <option value="YV">Mesa Airlines</option>
+         </select>
          <input name="holiday" type="text" id="holiday" list="holiday_list" placeholder="Holiday">
 	 <input name="year" type="text" id="year" list="year_list" placeholder="Year">
 	 <input name="flightNum" type="text" id="flightNum" list="flight_num" placeholder="Flight Number">
@@ -119,40 +139,15 @@ $(function() {
        
     </form>
        <div class="clear-line">&nbsp;</div>
-	<div class="results">
-	
-	<div id="plot" style="height: 400px; min-width: 310px"></div>
+<!--	{% if data is defined %}
+        <p>Selected Airline: {{data['airline']}} From: {{data['from']}} To:
+        {{data['to']}}</p>
+        {% endif %} -->
+       <div class="results">
+	<div id="plot" style="height: 600px; min-width: 310px"></div>
 	<hr/>
 </div>
 
-<datalist id="airline">
-              <option value="9E">
-	      <option value="AA">
-	      <option value="AQ">
-	      <option value="AS">
-	      <option value="B6">
-	      <option value="CO">
-	      <option value="DH">
-	      <option value="DL">
-	      <option value="E*">
-	      <option value="EV">
-	      <option value="F9">
-	      <option value="FL">
-	      <option value="HA">
-	      <option value="HP">
-	      <option value="MQ">
-	      <option value="NW">
-	      <option value="OH">
-	      <option value="OO">
-	      <option value="TW">
-	      <option value="TZ">
-	      <option value="UA">
-	      <option value="US">
-	      <option value="VX">
-	      <option value="WN">
-	      <option value="XE">
-	      <option value="YV">
-</datalist>
 <datalist id="holiday_list">
               <option value="New Year">
               <option value="Christmas">
@@ -160,6 +155,8 @@ $(function() {
 	      <option value="Independence Day">
 </datalist>
 
+		
+{% if  data['report_type'] is defined %}
 <script type="text/javascript" charset="utf-8">
 {% if data['report_type'] == 'delay_category' %}
     $(function () {
@@ -170,7 +167,7 @@ $(function() {
             plotShadow: false
         },
         title: {
-            text: 'Categories of Delay for the selected Airline and Dates'
+            text: 'Delay Categorization for the Selected Airline and Timeframe'
         },
         tooltip: {
             pointFormat: '{series.name}: <b>{point.percentage:.2f}%</b>'
@@ -274,8 +271,7 @@ $(function() {
     });
 });
 {% endif %}
-
-
+	    
 {% if data['report_type'] == "delay_flightNum" %}
  $(function () {
     $('#plot').highcharts({
@@ -285,7 +281,7 @@ $(function() {
             plotShadow: false
         },
         title: {
-            text: 'Categories of Delay for the selected Airline and Dates'
+            text: 'Delay Categorization for the Selected Flight Number and Timeframe'
         },
         tooltip: {
             pointFormat: '{series.name}: <b>{point.percentage:.2f}%</b>'
@@ -316,20 +312,16 @@ $(function() {
 $(function () {
     $('#plot').highcharts({
         title: {
-            text: 'Monthly Average Temperature',
+            text: 'Arrivals depending on Season',
             x: -20 //center
         },
-        subtitle: {
-            text: 'Source: WorldClimate.com',
-            x: -20
-        },
         xAxis: {
-            categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            categories: ['On Time', 'NAS', 'Security', 'Weather', 'Late Aircraft', 'Carrier',
+                'Unclassified']
         },
         yAxis: {
             title: {
-                text: 'Temperature (°C)'
+                text: 'Number of Delayed Flights'
             },
             plotLines: [{
                 value: 0,
@@ -338,7 +330,7 @@ $(function () {
             }]
         },
         tooltip: {
-            valueSuffix: '°C'
+            valueSuffix: ''
         },
         legend: {
             layout: 'vertical',
@@ -347,22 +339,25 @@ $(function () {
             borderWidth: 0
         },
         series: [{
-            name: 'Tokyo',
-            data: [7.0, 6.9, 9.5, 14.5, 18.2, 21.5, 25.2, 26.5, 23.3, 18.3, 13.9, 9.6]
+            name: 'Fall',
+            data: {{chart_data[0] | safe}}
         }, {
-            name: 'New York',
-            data: [-0.2, 0.8, 5.7, 11.3, 17.0, 22.0, 24.8, 24.1, 20.1, 14.1, 8.6, 2.5]
+            name: 'Winter',
+            data: {{chart_data[1] | safe}}
         }, {
-            name: 'Berlin',
-            data: [-0.9, 0.6, 3.5, 8.4, 13.5, 17.0, 18.6, 17.9, 14.3, 9.0, 3.9, 1.0]
+            name: 'Spring',
+            data: {{chart_data[2] | safe}}
         }, {
-            name: 'London',
-            data: [3.9, 4.2, 5.7, 8.5, 11.9, 15.2, 17.0, 16.6, 14.2, 10.3, 6.6, 4.8]
+            name: 'Summer',
+            data: {{chart_data[3] | safe}}
         }]
     });
 });
 {% endif %}
 </script>
+{% else %}
+<p> Please provide input parameters! </p>
+{% endif %}
 
 
 <script>
