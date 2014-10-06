@@ -76,7 +76,7 @@ delay_num_month_fnum_flat = FOREACH delay_num_month_fnum GENERATE FLATTEN(group)
 --make the composite key for month
 final_month_fnum = FOREACH delay_num_month_fnum_flat GENERATE CONCAT(CONCAT(CONCAT(UniqueCarrier,'_'), CONCAT(FlightNum,'_')), (chararray)Month) AS Key, CarrierDelay_Num, WeatherDelay_Num, NASDelay_Num, SecurityDelay_Num, LateAircraftDelay_Num, OtherDelay_Num;
 
----
+-----
 
 STORE final_date_fnum INTO 'hbase://delay_flightNum_date'
 USING org.apache.pig.backend.hadoop.hbase.HBaseStorage(
