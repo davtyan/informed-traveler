@@ -2,7 +2,7 @@
 
 if [$1 == ""]
 then
-    echo "Provide a path to the directory containing the .csv files!"
+    echo "Provide a path to the directory containing the .csv files."
 else
     if [ -d $1 ]; then
 	echo "This is a directory"
