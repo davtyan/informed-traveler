@@ -8,7 +8,7 @@ echo
 
 echo "The Data will be saved under /home/ubuntu/Data/NCDC"
 
-#using curl to download the data
+#using curl to download the data for all years
 
 cd /home/ubuntu/Data/NCDC && { curl -O http://www1.ncdc.noaa.gov/pub/data/ghcn/daily/by_year/[1987-2014].csv.gz ; cd -; }
 
