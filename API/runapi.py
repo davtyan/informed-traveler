@@ -273,7 +273,7 @@ def flightNum_delay(form_data):
                 delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
                 delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
             
-            table = connection.table('flightNum_year_fcount-2')
+            table = connection.table('flightNum_year_fcount')
             for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
                 flight_total += int(data['count:Num_Flights'])
 
@@ -290,7 +290,7 @@ def flightNum_delay(form_data):
                 delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
                 delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
 
-            table = connection.table('flightNum_month_fcount-2')
+            table = connection.table('flightNum_month_fcount')
             for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
                 flight_total += int(data['count:Num_Flights'])
 
@@ -307,7 +307,7 @@ def flightNum_delay(form_data):
                 delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
                 delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
 
-            table = connection.table('flightNum_month_fcount-2')
+            table = connection.table('flightNum_month_fcount')
             for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
                 flight_total += int(data['count:Num_Flights'])
 
@@ -324,7 +324,7 @@ def flightNum_delay(form_data):
                 delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
                 delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
 
-            table = connection.table('flightNum_date_fcount-2')
+            table = connection.table('flightNum_date_fcount')
             for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
                 flight_total += int(data['count:Num_Flights'])
 
@@ -342,7 +342,7 @@ def flightNum_delay(form_data):
                 delay['Carrier'] += int(data['delay:CarrierDelay_Num'])
                 delay['Unclassified'] += int(data['delay:OtherDelay_Num'])
 
-            table = connection.table('flightNum_date_fcount-2')
+            table = connection.table('flightNum_date_fcount')
             for key, data in table.scan(row_start = rk_start, row_stop = rk_end):
                 flight_total += int(data['count:Num_Flights'])
 
