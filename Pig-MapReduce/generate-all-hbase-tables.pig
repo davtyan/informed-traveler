@@ -5,10 +5,41 @@ REGISTER /home/ubuntu/seda/informed-traveler/Pig/contrib/piggybank/java/piggyban
 on_time_perform = LOAD '/user/ubuntu/Data' USING org.apache.pig.piggybank.storage.CSVExcelStorage()  AS (Year:int, Quarter:int, Month:int, DayofMonth:int, DayOfWeek:int, FlightDate:chararray, UniqueCarrier:chararray, AirlineID:chararray, Carrier:chararray, TailNum:chararray, FlightNum:chararray, OriginAirportID:chararray, OriginAirportSeqID:chararray, OriginCityMarketID:chararray, Origin:chararray, OriginCityName:chararray, OriginState:chararray, OriginStateFips:chararray, OriginStateName:chararray, OriginWac:chararray, DestAirportID:chararray, DestAirportSeqID:chararray, DestCityMarketIDchararray, Dest:chararray, DestCityName:chararray, DestState:chararray, DestStateFips:chararray, DestStateName:chararray, DestWac:chararray, CRSDepTime:chararray, DepTime:chararray, DepDelay:int, DepDelayMinutes:int, DepDel15:int, DepartureDelayGroups:chararray, DepTimeBlk:chararray, TaxiOut:chararray, WheelsOff:chararray, WheelsOn:chararray, TaxiIn:chararray, CRSArrTime:chararray, ArrTime:chararray, ArrDelay:int, ArrDelayMinutes:int, ArrDel15:int, ArrivalDelayGroups:chararray, ArrTimeBlk:chararray, Cancelled:int, CancellationCode:chararray, Diverted:chararray, CRSElapsedTime:chararray, ActualElapsedTime:chararray, AirTime:chararray, Flights:chararray, Distance:chararray, DistanceGroup:chararray, CarrierDelay:int, WeatherDelay:int, NASDelay:int, SecurityDelay:int, LateAircraftDelay:int, FirstDepTime:chararray, TotalAddGTime:chararray, LongestAddGTime:chararray, DivAirportLandings:chararray, DivReachedDest:chararray, DivActualElapsedTime:chararray, DivArrDelay:chararray, DivDistance:chararray, Div1Airport:chararray, Div1AirportID:chararray, Div1AirportSeqID:chararray, Div1WheelsOn:chararray, Div1TotalGTime:chararray, Div1LongestGTime:chararray, Div1WheelsOff:chararray, Div1TailNum:chararray, Div2Airport:chararray, Div2AirportID:chararray, Div2AirportSeqID:chararray, Div2WheelsOn:chararray, Div2TotalGTime:chararray, Div2LongestGTime:chararray, Div2WheelsOff:chararray, Div2TailNum:chararray, Div3Airport:chararray, Div3AirportID:chararray, Div3AirportSeqID:chararray, Div3WheelsOn:chararray, Div3TotalGTime:chararray, Div3LongestGTime:chararray, Div3WheelsOff:chararray, Div3TailNum:chararray, Div4Airport:chararray, Div4AirportID:chararray, Div4AirportSeqID:chararray, Div4WheelsOn:chararray, Div4TotalGTime:chararray, Div4LongestGTime:chararray, Div4WheelsOff:chararray, Div4TailNum:chararray, Div5Airport:chararray, Div5AirportID:chararray, Div5AirportSeqID:chararray, Div5WheelsOn:chararray, Div5TotalGTime:chararray, Div5LongestGTime:chararray, Div5WheelsOff:chararray, Div5TailNum:chararray);
 
 -- FOREACH .. GENERATE operator is used to specify the columns of interest
-delays_dates = FOREACH on_time_perform GENERATE UniqueCarrier, Year, Quarter, Month, DayofMonth, DayOfWeek,  FlightDate, FlightNum, ArrDelay, ArrDel15, Cancelled, (CarrierDelay is null OR CarrierDelay==0 ? 0 : 1) AS CarrierDelay_Bool, (WeatherDelay is null OR WeatherDelay== 0 ? 0 : 1) AS WeatherDelay_Bool, (NASDelay is null OR NASDelay==0 ? 0 : 1) AS NASDelay_Bool, (SecurityDelay is null OR SecurityDelay == 0 ? 0 : 1) AS SecurityDelay_Bool, (LateAircraftDelay is null OR LateAircraftDelay == 0 ? 0 : 1) AS LateAircraftDelay_Bool;
+delays_dates = FOREACH on_time_perform GENERATE UniqueCarrier, 
+                                                Year, 
+                                                Quarter, 
+                                                Month, 
+                                                DayofMonth, 
+                                                DayOfWeek,  
+                                                FlightDate, 
+                                                FlightNum, 
+                                                ArrDelay, 
+                                                ArrDel15, 
+                                                Cancelled, 
+                                                (CarrierDelay is null OR CarrierDelay==0 ? 0 : 1) AS CarrierDelay_Bool, 
+                                                (WeatherDelay is null OR WeatherDelay== 0 ? 0 : 1) AS WeatherDelay_Bool, 
+                                                (NASDelay is null OR NASDelay == 0 ? 0 : 1) AS NASDelay_Bool, 
+                                                (SecurityDelay is null OR SecurityDelay == 0 ? 0 : 1) AS SecurityDelay_Bool, 
+                                                (LateAircraftDelay is null OR LateAircraftDelay == 0 ? 0 : 1) AS LateAircraftDelay_Bool;
 
 --If the plane was delayed but the delay is not classifed add OtherDelay_Bool category
-filt_other_delay = FOREACH delays_dates GENERATE UniqueCarrier, Year, Quarter, Month, DayofMonth, DayOfWeek,  FlightDate, FlightNum, ArrDelay, ArrDel15, Cancelled, CarrierDelay_Bool, WeatherDelay_Bool, NASDelay_Bool, SecurityDelay_Bool, LateAircraftDelay_Bool, (CarrierDelay_Bool == 1 OR WeatherDelay_Bool == 1 OR NASDelay_Bool == 1 OR SecurityDelay_Bool==1 OR LateAircraftDelay_Bool == 1 ? 0 : 1) AS OtherDelay_Bool;
+filt_other_delay = FOREACH delays_dates GENERATE UniqueCarrier, 
+                                                  Year, 
+                                                  Quarter, 
+                                                  Month, 
+                                                  DayofMonth, 
+                                                  DayOfWeek,  
+                                                  FlightDate, 
+                                                  FlightNum, 
+                                                  ArrDelay, 
+                                                  ArrDel15, 
+                                                  Cancelled, 
+                                                  CarrierDelay_Bool, 
+                                                  WeatherDelay_Bool, 
+                                                  NASDelay_Bool, 
+                                                  SecurityDelay_Bool, 
+                                                  LateAircraftDelay_Bool, 
+                                                  (CarrierDelay_Bool == 1 OR WeatherDelay_Bool == 1 OR NASDelay_Bool == 1 OR SecurityDelay_Bool==1 OR LateAircraftDelay_Bool == 1 ? 0 : 1) AS OtherDelay_Bool;
 
 --Apply a filter - consider only the records that have ArrDel15 1, meaning that a carrier was late for 15 minutes or more
 filtered_delay = FILTER filt_other_delay BY (ArrDelay is not null AND ArrDel15 == 1 AND Cancelled != 1);
